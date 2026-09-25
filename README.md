@@ -22,18 +22,13 @@ an IAM policy you control and can revoke.
 ## Example
 
 ```yaml
-permissions:
-  id-token: write # Required to assume the AWS IAM role via OIDC
-  contents: read
-
-env:
-  AWS_REGION: ap-northeast-1
-
 jobs:
   example:
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Required to assume the AWS IAM role via OIDC
     steps:
-      - uses: suzuki-shunsuke/create-github-app-token-aws-kms@c4b659c57b5e2319d887706fe3f6ff0f7ee9afbc # v0.0.1
+      - uses: suzuki-shunsuke/create-github-app-token-aws-kms@91a3afd26b06729357ac310a02b658f0e3910ba9 # v0.0.2
         id: token
         with:
           client-id: ${{vars.APP_CLIENT_ID}}
@@ -55,23 +50,51 @@ OIDC token. The credentials then stay inside this action and are never exported,
 so later steps of the job can't see them. The session lasts 900 seconds, the
 shortest AWS STS accepts.
 
-Leave it unset to use the standard AWS credential chain instead, which is what
+Leave it unset to read the credentials from `AWS_ACCESS_KEY_ID`,
+`AWS_SECRET_ACCESS_KEY` and `AWS_SESSION_TOKEN` instead, which is what
 [aws-actions/configure-aws-credentials](https://github.com/aws-actions/configure-aws-credentials)
-sets up. Use that action when you need any of the options it offers that this
-one doesn't, such as an external ID, a session policy or a custom STS endpoint.
-Note that it exports the credentials as environment variables or writes them to
+exports. Use that action when you need any of the options it offers that this
+one doesn't, such as an external ID or a session policy. Note that it exports
+the credentials as environment variables or writes them to
 `~/.aws/credentials`, where the rest of the job can read them.
 
+Those environment variables are the only other source. A profile in
+`~/.aws/credentials`, IMDS on a self-hosted EC2 runner and the credentials of an
+ECS or EKS task are not read, so reach for `aws-actions/configure-aws-credentials`
+to use any of them.
+
+### The role session name
+
+The session is named `gha-<run id>-<run attempt>`, for example `gha-17251230-1`.
+CloudTrail records the session name on every call the session makes, so a
+`kms:Sign` event names the workflow run that asked for the signature.
+
+This matters because the token a signature produces acts as the GitHub App. The
+GitHub audit log attributes what the token does to the app, not to the run that
+created it, so the AWS side is the only place a run can be named at all.
+
+The owner and the repository are left out. AWS STS caps the name at 64
+characters and rejects anything outside `[\w+=,.@-]`, so a slash can't separate
+the parts and a repository name would sometimes have to be truncated. A run id
+is unique across GitHub, and the `AssumeRoleWithWebIdentity` event that opened
+the session records the `sub` claim of the OIDC token, which names the
+repository. Joining the two events on the access key id of the session gets
+there.
+
+The name is not configurable. An IAM trust policy conditioning on
+`sts:RoleSessionName` has to match this shape, for example with `StringLike` and
+`gha-*`. Earlier versions of this action used `GitHubActions`, the default of
+[aws-actions/configure-aws-credentials](https://github.com/aws-actions/configure-aws-credentials),
+so a policy pinned to that value with `StringEquals` needs updating.
 ### The region
 
 A key ARN carries its region, so passing `kms-key-id` as an ARN is enough and
 nothing else needs setting. For an alias or a bare key id, set the `aws-region`
-input, or leave it to the AWS SDK, which resolves `AWS_REGION` and
-`~/.aws/config` as it normally does. When the SDK can't find one either, the
-action says which of its inputs would have answered the question.
+input, or set `AWS_REGION` or `AWS_DEFAULT_REGION`. When none of them says, the
+action fails and names which of its inputs would have answered the question.
 
-An ARN wins over the environment and a profile, because it states where the key
-actually is while they are only defaults.
+An ARN wins over the environment, because it states where the key actually is
+while `AWS_REGION` is only a default.
 
 ## The KMS key
 
