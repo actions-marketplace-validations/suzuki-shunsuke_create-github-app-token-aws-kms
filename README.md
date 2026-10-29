@@ -28,7 +28,7 @@ jobs:
     permissions:
       id-token: write # Required to assume the AWS IAM role via OIDC
     steps:
-      - uses: suzuki-shunsuke/create-github-app-token-aws-kms@91a3afd26b06729357ac310a02b658f0e3910ba9 # v0.0.2
+      - uses: suzuki-shunsuke/create-github-app-token-aws-kms@b4a29a5f1cd6ea2b633d6ee6d9806dbce26493cf # v0.0.3
         id: token
         with:
           client-id: ${{vars.APP_CLIENT_ID}}
@@ -86,6 +86,7 @@ The name is not configurable. An IAM trust policy conditioning on
 `gha-*`. Earlier versions of this action used `GitHubActions`, the default of
 [aws-actions/configure-aws-credentials](https://github.com/aws-actions/configure-aws-credentials),
 so a policy pinned to that value with `StringEquals` needs updating.
+
 ### The region
 
 A key ARN carries its region, so passing `kms-key-id` as an ARN is enough and

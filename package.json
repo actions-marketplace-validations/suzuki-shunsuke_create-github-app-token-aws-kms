@@ -2,7 +2,7 @@
   "type": "module",
   "scripts": {
     "build": "ncc build src/index.ts -o dist --license LICENSE",
-    "fmt": "prettier --write src",
+    "fmt": "npm ci --prefix .github/prettier --no-audit --no-fund && .github/prettier/node_modules/.bin/prettier --write src",
     "lint": "eslint && tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "test": "vitest --run"
@@ -16,15 +16,14 @@
     "@suzuki-shunsuke/github-app-token": "npm:@jsr/suzuki-shunsuke__github-app-token@^0.2.1"
   },
   "devDependencies": {
-    "@eslint/js": "^10.0.1",
-    "@types/node": "^24.13.4",
-    "@vercel/ncc": "^0.45.0",
-    "eslint": "^10.10.0",
-    "globals": "^17.12.0",
-    "jiti": "^2.7.0",
-    "prettier": "^3.9.6",
-    "typescript": "^6.0.3",
-    "typescript-eslint": "^8.70.0",
-    "vitest": "^5.0.0"
+    "@eslint/js": "10.0.1",
+    "@types/node": "24.19.2",
+    "@vercel/ncc": "0.45.0",
+    "eslint": "10.13.0",
+    "globals": "17.13.0",
+    "jiti": "2.7.0",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.72.0",
+    "vitest": "5.0.5"
   }
 }
